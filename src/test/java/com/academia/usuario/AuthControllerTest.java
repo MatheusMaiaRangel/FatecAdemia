@@ -69,6 +69,15 @@ class AuthControllerTest {
     }
 
     @Test
+    void senhaAcentuadaQuePassaDoLimiteDeBytesDoBcryptDevolve400() throws Exception {
+        String senhaCom40CaracteresE80Bytes = "é".repeat(40);
+
+        registrar("Gil", "gil@email.com", senhaCom40CaracteresE80Bytes)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos[0].campo").value("senha"));
+    }
+
+    @Test
     void registroComEmailRepetidoDevolve409() throws Exception {
         registrar("Davi", "davi@email.com", SENHA).andExpect(status().isCreated());
 

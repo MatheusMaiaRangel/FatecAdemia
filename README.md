@@ -37,7 +37,7 @@ O arquivo `.env` é lido automaticamente pela aplicação e está no `.gitignore
 | `JWT_EXPIRACAO` | Validade do token, no formato de duração do Spring     | `2h`, `30m`, `1d`                                                        |
 | `ADMIN_NOME`    | Nome do administrador criado na primeira subida        | `Administrador`                                                          |
 | `ADMIN_EMAIL`   | E-mail desse administrador                             | `admin@fatecademia.local`                                                |
-| `ADMIN_SENHA`   | Senha desse administrador (8 a 72 caracteres)          |                                                                          |
+| `ADMIN_SENHA`   | Senha desse administrador (8 caracteres a 72 bytes)    |                                                                          |
 
 A aplicação não sobe se alguma delas faltar ou se o segredo do JWT for curto demais.
 

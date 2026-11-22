@@ -15,6 +15,7 @@ public record RegistroRequest(
         String email,
 
         @NotBlank
-        @Size(min = LimitesUsuario.TAMANHO_MINIMO_SENHA, max = LimitesUsuario.TAMANHO_MAXIMO_SENHA)
+        @Size(min = LimitesUsuario.TAMANHO_MINIMO_SENHA)
+        @CabeNoBcrypt
         String senha) {
 }

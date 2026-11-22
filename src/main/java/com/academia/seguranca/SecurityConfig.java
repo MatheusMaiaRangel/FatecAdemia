@@ -21,7 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     static final String[] ROTAS_PUBLICAS = {
-            "/auth/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/error"
+            "/", "/auth/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/error"
     };
     static final String[] ROTAS_DO_CATALOGO = {"/modalidades/**", "/instrutores/**", "/aulas/**"};
     static final String ROTAS_DE_INSCRICAO = "/inscricoes/**";

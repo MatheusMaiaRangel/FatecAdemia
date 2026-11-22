@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
@@ -88,6 +89,20 @@ class TratadorDeErrosTest {
     }
 
     @Test
+    void violacaoDeIntegridadeDevolve409SemExporOBanco() throws Exception {
+        mockMvc.perform(get("/falso/integridade"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensagem").value(TratadorDeErros.CONFLITO_DE_DADOS));
+    }
+
+    @Test
+    void credenciaisInvalidasDevolvem401() throws Exception {
+        mockMvc.perform(get("/falso/credenciais"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensagem").value(CredenciaisInvalidasException.MENSAGEM));
+    }
+
+    @Test
     void acessoNegadoDevolve403() throws Exception {
         mockMvc.perform(get("/falso/negado"))
                 .andExpect(status().isForbidden())
@@ -123,6 +138,16 @@ class TratadorDeErrosTest {
         @GetMapping("/falso/regra")
         void regra() {
             throw new RegraNegocioException("Aula lotada");
+        }
+
+        @GetMapping("/falso/integridade")
+        void integridade() {
+            throw new DataIntegrityViolationException("Duplicate entry 'x' for key 'usuarios.email'");
+        }
+
+        @GetMapping("/falso/credenciais")
+        void credenciais() {
+            throw new CredenciaisInvalidasException();
         }
 
         @GetMapping("/falso/negado")

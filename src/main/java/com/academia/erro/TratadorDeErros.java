@@ -3,6 +3,7 @@ package com.academia.erro;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -25,6 +26,7 @@ public class TratadorDeErros {
     static final String PARAMETRO_INVALIDO = "Parâmetro com valor inválido: ";
     static final String ROTA_NAO_ENCONTRADA = "Rota não encontrada";
     static final String METODO_NAO_SUPORTADO = "Método HTTP não suportado nesta rota";
+    static final String CONFLITO_DE_DADOS = "A operação conflita com dados já existentes";
     static final String ACESSO_NEGADO = "Acesso negado";
     static final String ERRO_INTERNO = "Erro interno no servidor";
 
@@ -72,6 +74,17 @@ public class TratadorDeErros {
     public ResponseEntity<RespostaErro> tratarRegraNegocio(RegraNegocioException ex,
                                                            HttpServletRequest requisicao) {
         return responder(HttpStatus.CONFLICT, ex.getMessage(), requisicao);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<RespostaErro> tratarViolacaoDeIntegridade(HttpServletRequest requisicao) {
+        return responder(HttpStatus.CONFLICT, CONFLITO_DE_DADOS, requisicao);
+    }
+
+    @ExceptionHandler(CredenciaisInvalidasException.class)
+    public ResponseEntity<RespostaErro> tratarCredenciaisInvalidas(CredenciaisInvalidasException ex,
+                                                                   HttpServletRequest requisicao) {
+        return responder(HttpStatus.UNAUTHORIZED, ex.getMessage(), requisicao);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

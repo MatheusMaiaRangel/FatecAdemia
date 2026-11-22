@@ -52,7 +52,9 @@ Na primeira subida as tabelas são criadas e o administrador é cadastrado com o
 ### 4. Usar
 
 - Swagger: http://localhost:8080/swagger-ui.html
-- Faça login como administrador em `POST /auth/login` (dados de `ADMIN_EMAIL` e `ADMIN_SENHA`), cadastre alunos em `POST /usuarios` e use o token recebido no cabeçalho `Authorization: Bearer <token>`.
+- No Swagger, faça login como administrador em `POST /auth/login` (dados de `ADMIN_EMAIL` e `ADMIN_SENHA`) e copie o `token` da resposta.
+- Clique em **Authorize**, cole só o token (sem escrever `Bearer`) e confirme. A partir daí as rotas protegidas funcionam pela própria interface, como o cadastro de alunos em `POST /usuarios`.
+- Fora do Swagger, mande o token no cabeçalho `Authorization: Bearer <token>`.
 
 ### 5. Testes e cobertura
 
@@ -122,7 +124,7 @@ Todo erro, inclusive 401 e 403, volta no mesmo formato:
 
 ```
 com.academia
-├── config      relógio do sistema (injetável para facilitar testes com horário)
+├── config      Swagger com botão Authorize, redirecionamento da raiz e relógio do sistema
 ├── erro        tratador global, resposta de erro padrão e exceções
 ├── seguranca   SecurityConfig, filtro JWT, TokenService, UsuarioLogado e respostas 401/403
 └── usuario     entidade Usuario, papéis, cadastro de alunos, login e administrador inicial

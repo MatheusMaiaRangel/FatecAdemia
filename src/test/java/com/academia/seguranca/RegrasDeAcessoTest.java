@@ -114,6 +114,14 @@ class RegrasDeAcessoTest {
     }
 
     @Test
+    void swaggerAnunciaOTokenJwtParaOBotaoAuthorize() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(jsonPath("$.security[0].bearerAuth").exists());
+    }
+
+    @Test
     void raizLevaAoSwaggerSemPedirLogin() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().is3xxRedirection())

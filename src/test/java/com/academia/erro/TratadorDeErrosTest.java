@@ -53,6 +53,15 @@ class TratadorDeErrosTest {
     }
 
     @Test
+    void corpoQueNaoEhJsonDevolve415() throws Exception {
+        mockMvc.perform(post("/falso/validacao")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .content("nome=Ana"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.mensagem").value(TratadorDeErros.TIPO_NAO_SUPORTADO));
+    }
+
+    @Test
     void parametroDeTipoErradoDevolve400() throws Exception {
         mockMvc.perform(get("/falso/numero/abc"))
                 .andExpect(status().isBadRequest())

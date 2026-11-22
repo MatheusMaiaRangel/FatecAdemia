@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,6 +27,7 @@ public class TratadorDeErros {
     static final String PARAMETRO_INVALIDO = "Parâmetro com valor inválido: ";
     static final String ROTA_NAO_ENCONTRADA = "Rota não encontrada";
     static final String METODO_NAO_SUPORTADO = "Método HTTP não suportado nesta rota";
+    static final String TIPO_NAO_SUPORTADO = "Envie o corpo como application/json";
     static final String CONFLITO_DE_DADOS = "A operação conflita com dados já existentes";
     static final String ACESSO_NEGADO = "Acesso negado";
     static final String ERRO_INTERNO = "Erro interno no servidor";
@@ -68,6 +70,11 @@ public class TratadorDeErros {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<RespostaErro> tratarMetodoNaoSuportado(HttpServletRequest requisicao) {
         return responder(HttpStatus.METHOD_NOT_ALLOWED, METODO_NAO_SUPORTADO, requisicao);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<RespostaErro> tratarTipoDeConteudoNaoSuportado(HttpServletRequest requisicao) {
+        return responder(HttpStatus.UNSUPPORTED_MEDIA_TYPE, TIPO_NAO_SUPORTADO, requisicao);
     }
 
     @ExceptionHandler(RegraNegocioException.class)

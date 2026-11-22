@@ -72,8 +72,11 @@ class TokenServiceTest {
     @Test
     void expiracaoNaoPositivaImpedeASubidaDoServico() {
         JwtProperties semExpiracao = new JwtProperties(SEGREDO, Duration.ZERO, EMISSOR);
+        JwtProperties expiracaoNegativa = new JwtProperties(SEGREDO, Duration.ofMinutes(-1), EMISSOR);
 
         assertThatThrownBy(() -> new TokenService(semExpiracao, relogioEm(AGORA)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new TokenService(expiracaoNegativa, relogioEm(AGORA)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

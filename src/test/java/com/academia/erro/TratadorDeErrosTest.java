@@ -1,12 +1,20 @@
 package com.academia.erro;
 
+import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Set;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -59,6 +67,50 @@ class TratadorDeErrosTest {
                         .content("nome=Ana"))
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(jsonPath("$.mensagem").value(TratadorDeErros.TIPO_NAO_SUPORTADO));
+    }
+
+    @Test
+    void parametroObrigatorioAusenteDevolve400() throws Exception {
+        mockMvc.perform(get("/falso/busca"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value(TratadorDeErros.PARAMETRO_AUSENTE + "termo"));
+    }
+
+    @Test
+    void validacaoEmParametroDaRotaDevolve400() throws Exception {
+        mockMvc.perform(get("/falso/positivo/-1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value(TratadorDeErros.DADOS_INVALIDOS));
+    }
+
+    @Test
+    void violacaoDeRestricaoLancadaNoServicoDevolve400() throws Exception {
+        mockMvc.perform(get("/falso/restricao"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value(TratadorDeErros.DADOS_INVALIDOS));
+    }
+
+    @Test
+    void responseStatusExceptionMantemOStatusEAMensagem() throws Exception {
+        mockMvc.perform(get("/falso/status"))
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.mensagem").value("Aula removida"));
+        mockMvc.perform(get("/falso/status-sem-motivo"))
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.mensagem").value("Gone"));
+    }
+
+    @Test
+    void formatoDeRespostaNaoAceitoDevolve406() throws Exception {
+        mockMvc.perform(get("/falso/json").accept(MediaType.IMAGE_PNG))
+                .andExpect(status().isNotAcceptable());
+    }
+
+    @Test
+    void falhaDeAutenticacaoDentroDoMetodoDevolve401() throws Exception {
+        mockMvc.perform(get("/falso/sem-autenticacao"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensagem").value(TratadorDeErros.NAO_AUTENTICADO));
     }
 
     @Test
@@ -147,6 +199,39 @@ class TratadorDeErrosTest {
         @GetMapping("/falso/regra")
         void regra() {
             throw new RegraNegocioException("Aula lotada");
+        }
+
+        @GetMapping("/falso/busca")
+        void busca(@RequestParam String termo) {
+        }
+
+        @GetMapping("/falso/positivo/{numero}")
+        void positivo(@PathVariable @Positive Integer numero) {
+        }
+
+        @GetMapping("/falso/restricao")
+        void restricao() {
+            throw new ConstraintViolationException("inválido", Set.of());
+        }
+
+        @GetMapping("/falso/status")
+        void statusComMotivo() {
+            throw new ResponseStatusException(HttpStatus.GONE, "Aula removida");
+        }
+
+        @GetMapping("/falso/status-sem-motivo")
+        void statusSemMotivo() {
+            throw new ResponseStatusException(HttpStatus.GONE);
+        }
+
+        @GetMapping(value = "/falso/json", produces = MediaType.APPLICATION_JSON_VALUE)
+        String json() {
+            return "{}";
+        }
+
+        @GetMapping("/falso/sem-autenticacao")
+        void semAutenticacao() {
+            throw new AuthenticationCredentialsNotFoundException("sem credenciais");
         }
 
         @GetMapping("/falso/integridade")

@@ -25,6 +25,7 @@ public class SecurityConfig {
     };
     static final String[] ROTAS_DO_CATALOGO = {"/modalidades/**", "/instrutores/**", "/aulas/**"};
     static final String ROTAS_DE_INSCRICAO = "/inscricoes/**";
+    static final String ROTAS_DE_USUARIOS = "/usuarios/**";
 
     @Bean
     public SecurityFilterChain cadeiaDeFiltros(HttpSecurity http, TokenService tokenService,
@@ -41,6 +42,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, ROTAS_DO_CATALOGO).authenticated()
                         .requestMatchers(ROTAS_DO_CATALOGO).hasRole(Papel.ADMIN.name())
                         .requestMatchers(ROTAS_DE_INSCRICAO).hasRole(Papel.ALUNO.name())
+                        .requestMatchers(ROTAS_DE_USUARIOS).hasRole(Papel.ADMIN.name())
                         .anyRequest().authenticated())
                 .exceptionHandling(erros -> erros
                         .authenticationEntryPoint(respostaErro)

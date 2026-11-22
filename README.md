@@ -52,7 +52,7 @@ Na primeira subida as tabelas são criadas e o administrador é cadastrado com o
 ### 4. Usar
 
 - Swagger: http://localhost:8080/swagger-ui.html
-- Crie um aluno em `POST /auth/registro`, faça login em `POST /auth/login` e use o token recebido no cabeçalho `Authorization: Bearer <token>`.
+- Faça login como administrador em `POST /auth/login` (dados de `ADMIN_EMAIL` e `ADMIN_SENHA`), cadastre alunos em `POST /usuarios` e use o token recebido no cabeçalho `Authorization: Bearer <token>`.
 
 ### 5. Testes e cobertura
 
@@ -69,13 +69,14 @@ Os testes usam H2 em memória (perfil `test`), então não precisam do MySQL. O 
 - `ADMIN`: cria, altera e exclui modalidades, instrutores e aulas.
 - `ALUNO`: consulta o catálogo e cuida das próprias inscrições.
 
-O cadastro público (`/auth/registro`) sempre cria `ALUNO`. O único `ADMIN` nasce das variáveis de ambiente.
+Não existe cadastro público: quem cadastra alunos é o `ADMIN`, em `POST /usuarios`, como a recepção da academia. Todo usuário cadastrado ali é `ALUNO`. O único `ADMIN` nasce das variáveis de ambiente.
 
 ### Quem acessa o quê
 
 | Rota                                          | Método              | Quem pode                 |
 |-----------------------------------------------|---------------------|---------------------------|
-| `/auth/**`                                    | todos               | qualquer um               |
+| `/auth/login`                                 | `POST`              | qualquer um               |
+| `/usuarios/**`                                | todos               | só `ADMIN`                |
 | `/swagger-ui/**`, `/v3/api-docs/**`           | todos               | qualquer um               |
 | `/modalidades/**`, `/instrutores/**`, `/aulas/**` | `GET`           | qualquer usuário logado   |
 | `/modalidades/**`, `/instrutores/**`, `/aulas/**` | `POST`, `PUT`, `DELETE` | só `ADMIN`        |
@@ -94,7 +95,7 @@ Todo erro, inclusive 401 e 403, volta no mesmo formato:
   "status": 400,
   "erro": "Bad Request",
   "mensagem": "Dados inválidos",
-  "caminho": "/auth/registro",
+  "caminho": "/usuarios",
   "campos": [
     { "campo": "email", "mensagem": "deve ser um endereço de e-mail bem formado" }
   ]
@@ -124,7 +125,7 @@ com.academia
 ├── config      relógio do sistema (injetável para facilitar testes com horário)
 ├── erro        tratador global, resposta de erro padrão e exceções
 ├── seguranca   SecurityConfig, filtro JWT, TokenService, UsuarioLogado e respostas 401/403
-└── usuario     entidade Usuario, papéis, registro, login e administrador inicial
+└── usuario     entidade Usuario, papéis, cadastro de alunos, login e administrador inicial
 ```
 
 ## Infraestrutura reaproveitada do projeto da aula

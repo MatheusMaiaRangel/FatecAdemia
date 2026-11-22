@@ -65,6 +65,33 @@ class UsuarioServiceTest {
     }
 
     @Test
+    void criaAdminInicialQuandoOEmailAindaNaoExiste() {
+        when(usuarioRepository.existsByEmail("admin@email.com")).thenReturn(false);
+        when(codificadorDeSenha.encode("senha-admin")).thenReturn("hash");
+
+        boolean criado = usuarioService.criarAdminSeNaoExistir(
+                new AdminProperties("Admin", "Admin@Email.com", "senha-admin"));
+
+        ArgumentCaptor<Usuario> salvo = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarioRepository).save(salvo.capture());
+        assertThat(criado).isTrue();
+        assertThat(salvo.getValue().getPapel()).isEqualTo(Papel.ADMIN);
+        assertThat(salvo.getValue().getEmail()).isEqualTo("admin@email.com");
+        assertThat(salvo.getValue().getSenha()).isEqualTo("hash");
+    }
+
+    @Test
+    void naoDuplicaAdminInicialQueJaExiste() {
+        when(usuarioRepository.existsByEmail("admin@email.com")).thenReturn(true);
+
+        boolean criado = usuarioService.criarAdminSeNaoExistir(
+                new AdminProperties("Admin", "admin@email.com", "senha-admin"));
+
+        assertThat(criado).isFalse();
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
     void loginComCredenciaisCorretasDevolveToken() {
         Usuario ana = new Usuario("Ana", "ana@email.com", "hash", Papel.ALUNO);
         when(usuarioRepository.findByEmail("ana@email.com")).thenReturn(Optional.of(ana));

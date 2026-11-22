@@ -36,6 +36,17 @@ public class UsuarioService {
         return UsuarioResponse.de(usuarioRepository.save(aluno));
     }
 
+    @Transactional
+    public boolean criarAdminSeNaoExistir(AdminProperties admin) {
+        String email = normalizarEmail(admin.email());
+        if (usuarioRepository.existsByEmail(email)) {
+            return false;
+        }
+        usuarioRepository.save(new Usuario(admin.nome().trim(), email,
+                codificadorDeSenha.encode(admin.senha()), Papel.ADMIN));
+        return true;
+    }
+
     @Transactional(readOnly = true)
     public TokenResponse autenticar(LoginRequest dados) {
         Usuario usuario = usuarioRepository.findByEmail(normalizarEmail(dados.email()))

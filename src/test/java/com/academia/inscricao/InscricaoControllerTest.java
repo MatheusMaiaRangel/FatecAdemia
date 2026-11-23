@@ -2,6 +2,10 @@ package com.academia.inscricao;
 
 import com.academia.aula.Aula;
 import com.academia.aula.AulaRepository;
+import com.academia.instrutor.Instrutor;
+import com.academia.instrutor.InstrutorRepository;
+import com.academia.modalidade.Modalidade;
+import com.academia.modalidade.ModalidadeRepository;
 import com.academia.seguranca.TokenService;
 import com.academia.usuario.Papel;
 import com.academia.usuario.TokenResponse;
@@ -56,6 +60,15 @@ class InscricaoControllerTest {
     @Autowired
     private Clock relogio;
 
+    @Autowired
+    private ModalidadeRepository modalidadeRepository;
+
+    @Autowired
+    private InstrutorRepository instrutorRepository;
+
+    private Modalidade modalidade;
+    private Instrutor instrutor;
+
     private Usuario ana;
     private Usuario bruno;
     private String tokenAna;
@@ -63,6 +76,8 @@ class InscricaoControllerTest {
 
     @BeforeEach
     void prepararDados() {
+        modalidade = modalidadeRepository.save(new Modalidade("Pilates", "Aula coletiva"));
+        instrutor = instrutorRepository.save(new Instrutor("Carla", "Pilates"));
         ana = usuarioRepository.save(new Usuario("Ana", "ana.inscricao@email.com", "hash", Papel.ALUNO));
         bruno = usuarioRepository.save(new Usuario("Bruno", "bruno.inscricao@email.com", "hash", Papel.ALUNO));
         tokenAna = tokenService.gerar(ana);
@@ -71,7 +86,7 @@ class InscricaoControllerTest {
 
     @Test
     void alunoSeInscreveEmAulaComVagaEDevolve201() throws Exception {
-        Aula aula = aulaRepository.save(new Aula(LocalDateTime.now(relogio).plusHours(4), 2));
+        Aula aula = salvarAula(4, 2);
         String corpo = mapeadorJson.writeValueAsString(new InscricaoRequest(aula.getId()));
 
         mockMvc.perform(post("/inscricoes")
@@ -86,7 +101,7 @@ class InscricaoControllerTest {
 
     @Test
     void naoPermiteSeInscreverEmAulaLotadaEDevolve409() throws Exception {
-        Aula aulaComUmaVaga = aulaRepository.save(new Aula(LocalDateTime.now(relogio).plusHours(4), 1));
+        Aula aulaComUmaVaga = salvarAula(4, 1);
         inscricaoRepository.save(new Inscricao(ana, aulaComUmaVaga, LocalDateTime.now(relogio)));
 
         String corpo = mapeadorJson.writeValueAsString(new InscricaoRequest(aulaComUmaVaga.getId()));
@@ -101,8 +116,8 @@ class InscricaoControllerTest {
 
     @Test
     void verMinhasInscricoesSeparaPorDono() throws Exception {
-        Aula aula1 = aulaRepository.save(new Aula(LocalDateTime.now(relogio).plusHours(3), 5));
-        Aula aula2 = aulaRepository.save(new Aula(LocalDateTime.now(relogio).plusHours(5), 5));
+        Aula aula1 = salvarAula(3, 5);
+        Aula aula2 = salvarAula(5, 5);
         Inscricao inscricaoAna = inscricaoRepository.save(new Inscricao(ana, aula1, LocalDateTime.now(relogio)));
         inscricaoRepository.save(new Inscricao(bruno, aula2, LocalDateTime.now(relogio)));
 
@@ -117,7 +132,7 @@ class InscricaoControllerTest {
 
     @Test
     void cancelaInscricaoQuandoFaltamMaisDeDuasHorasParaAAula() throws Exception {
-        Aula aula = aulaRepository.save(new Aula(LocalDateTime.now(relogio).plusHours(3), 5));
+        Aula aula = salvarAula(3, 5);
         Inscricao inscricao = inscricaoRepository.save(new Inscricao(ana, aula, LocalDateTime.now(relogio)));
 
         mockMvc.perform(delete("/inscricoes/" + inscricao.getId())
@@ -129,7 +144,7 @@ class InscricaoControllerTest {
 
     @Test
     void naoPermiteCancelarComMenosDeDuasHorasParaAAulaEDevolve409() throws Exception {
-        Aula aulaEmUmaHora = aulaRepository.save(new Aula(LocalDateTime.now(relogio).plusHours(1), 5));
+        Aula aulaEmUmaHora = salvarAula(1, 5);
         Inscricao inscricao = inscricaoRepository.save(new Inscricao(ana, aulaEmUmaHora, LocalDateTime.now(relogio)));
 
         mockMvc.perform(delete("/inscricoes/" + inscricao.getId())
@@ -142,7 +157,7 @@ class InscricaoControllerTest {
 
     @Test
     void alunoNaoPodeCancelarInscricaoDeOutroAluno() throws Exception {
-        Aula aula = aulaRepository.save(new Aula(LocalDateTime.now(relogio).plusHours(4), 5));
+        Aula aula = salvarAula(4, 5);
         Inscricao inscricaoAna = inscricaoRepository.save(new Inscricao(ana, aula, LocalDateTime.now(relogio)));
 
         mockMvc.perform(delete("/inscricoes/" + inscricaoAna.getId())
@@ -151,6 +166,11 @@ class InscricaoControllerTest {
                 .andExpect(jsonPath("$.mensagem").value(InscricaoService.INSCRICAO_NAO_ENCONTRADA));
 
         assertThat(inscricaoRepository.findById(inscricaoAna.getId())).isPresent();
+    }
+
+    private Aula salvarAula(int horasAFrente, int capacidade) {
+        return aulaRepository.save(new Aula(LocalDateTime.now(relogio).plusHours(horasAFrente), capacidade,
+                modalidade, instrutor));
     }
 
     private static String bearer(String token) {

@@ -120,12 +120,30 @@ Todo erro, inclusive 401 e 403, volta no mesmo formato:
 - **Usuário logado:** injete `UsuarioLogado` e chame `obter()` (ou `obterId()`). O usuário vem do token, fora de transação, então use para comparar ids ou associar a outra entidade, e não para navegar coleções lazy dele.
 - As regras de rota por papel já estão prontas em `SecurityConfig`; basta criar os controllers nos caminhos da tabela acima.
 
+## Aulas (Pessoa 3)
+
+O módulo de aulas tem CRUD em `/aulas`, paginação, ordenação, filtro por modalidade e
+listagem de próximas aulas em `/aulas/proximas`. A criação e a edição impedem duas
+aulas do mesmo instrutor no mesmo horário de início, com resposta 409.
+
+O campo de data/hora se chama **`horario`**, preservando a integração com inscrições.
+O Swagger já tem o Authorize configurado e todos os endpoints de aulas têm `@Operation`.
+
+Veja [o guia de aulas](docs/aulas.md) para exemplos de requisições, consultas, testes,
+preparação do catálogo e integração com a parte da Pessoa 2. Nesta branch, `Modalidade`
+e `Instrutor` incluem somente as entidades e os repositories necessários às aulas;
+seus CRUDs continuam sendo a entrega da Pessoa 2.
+
 ## Estrutura
 
 ```
 com.academia
+├── aula        entidade e relacionamentos, DTOs, CRUD, consultas e regra de horário
 ├── config      Swagger com botão Authorize, redirecionamento da raiz e relógio do sistema
 ├── erro        tratador global, resposta de erro padrão e exceções
+├── inscricao   inscrições e cancelamento do aluno logado
+├── instrutor   entidade e repository de apoio ao módulo de aulas
+├── modalidade  entidade e repository de apoio ao módulo de aulas
 ├── seguranca   SecurityConfig, filtro JWT, TokenService, UsuarioLogado e respostas 401/403
 └── usuario     entidade Usuario, papéis, cadastro de alunos, login e administrador inicial
 ```

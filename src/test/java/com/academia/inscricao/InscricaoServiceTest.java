@@ -4,6 +4,8 @@ import com.academia.aula.Aula;
 import com.academia.aula.AulaRepository;
 import com.academia.erro.RecursoNaoEncontradoException;
 import com.academia.erro.RegraNegocioException;
+import com.academia.instrutor.Instrutor;
+import com.academia.modalidade.Modalidade;
 import com.academia.seguranca.UsuarioLogado;
 import com.academia.usuario.Papel;
 import com.academia.usuario.Usuario;
@@ -178,7 +180,8 @@ class InscricaoServiceTest {
     }
 
     private static Aula criarAula(Long id, LocalDateTime horario, int capacidade) {
-        Aula aula = new Aula(horario, capacidade);
+        Aula aula = new Aula(horario, capacidade,
+                new Modalidade("Pilates", "Aula coletiva"), new Instrutor("Carla", "Pilates"));
         ReflectionTestUtils.setField(aula, "id", id);
         return aula;
     }

@@ -25,7 +25,7 @@ public class InscricaoService {
     static final String AULA_LOTADA = "Aula lotada";
     static final String ALUNO_JA_INSCRITO = "Você já está inscrito nesta aula";
     static final String AULA_INICIADA = "Não é possível se inscrever em uma aula que já começou";
-    public static final String CONFLITO_DE_HORARIO = "O aluno já está inscrito em outra aula neste horário";
+    static final String CONFLITO_DE_HORARIO = "Você já está inscrito em outra aula neste horário";
     static final String PRAZO_CANCELAMENTO_ENCERRADO =
             "Não é possível cancelar a inscrição com menos de 2 horas para a aula";
 

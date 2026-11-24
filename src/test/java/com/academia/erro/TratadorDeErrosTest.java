@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -58,6 +60,37 @@ class TratadorDeErrosTest {
                         .content("{nome"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensagem").value(TratadorDeErros.CORPO_INVALIDO));
+    }
+
+    @Test
+    void campoComTipoErradoDizQualCampoEOQueEsperava() throws Exception {
+        mockMvc.perform(post("/falso/validacao")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\": \"Ana\", \"capacidade\": \"vinte\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value(TratadorDeErros.DADOS_INVALIDOS))
+                .andExpect(jsonPath("$.campos[0].campo").value("capacidade"))
+                .andExpect(jsonPath("$.campos[0].mensagem").value(TratadorDeErros.DEVE_SER_NUMERO));
+    }
+
+    @Test
+    void dataEmFormatoErradoMostraOFormatoEsperado() throws Exception {
+        mockMvc.perform(post("/falso/validacao")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\": \"Ana\", \"horario\": \"15/06/2027 18:00\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos[0].campo").value("horario"))
+                .andExpect(jsonPath("$.campos[0].mensagem").value(TratadorDeErros.FORMATO_DATA_HORA));
+    }
+
+    @Test
+    void campoComTipoErradoDeOutroTipoAindaApontaOCampo() throws Exception {
+        mockMvc.perform(post("/falso/validacao")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\": {\"x\": 1}}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos[0].campo").value("nome"))
+                .andExpect(jsonPath("$.campos[0].mensagem").value(TratadorDeErros.FORMATO_INVALIDO));
     }
 
     @Test
@@ -157,6 +190,20 @@ class TratadorDeErrosTest {
     }
 
     @Test
+    void violacaoDeRestricaoConhecidaExplicaACausa() throws Exception {
+        mockMvc.perform(get("/falso/integridade-conhecida"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensagem").value("O instrutor já tem uma aula neste horário"));
+    }
+
+    @Test
+    void registroTravadoPorOutraOperacaoDevolve409PedindoNovaTentativa() throws Exception {
+        mockMvc.perform(get("/falso/travado"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensagem").value(TratadorDeErros.REGISTRO_EM_USO));
+    }
+
+    @Test
     void credenciaisInvalidasDevolvem401() throws Exception {
         mockMvc.perform(get("/falso/credenciais"))
                 .andExpect(status().isUnauthorized())
@@ -177,7 +224,7 @@ class TratadorDeErrosTest {
                 .andExpect(jsonPath("$.mensagem").value(TratadorDeErros.ERRO_INTERNO));
     }
 
-    record DadosFalsos(@NotBlank String nome) {
+    record DadosFalsos(@NotBlank String nome, Integer capacidade, LocalDateTime horario) {
     }
 
     @RestController
@@ -237,6 +284,17 @@ class TratadorDeErrosTest {
         @GetMapping("/falso/integridade")
         void integridade() {
             throw new DataIntegrityViolationException("Duplicate entry 'x' for key 'usuarios.email'");
+        }
+
+        @GetMapping("/falso/integridade-conhecida")
+        void integridadeConhecida() {
+            throw new DataIntegrityViolationException("could not execute statement", new IllegalStateException(
+                    "Duplicate entry '3-2027-06-15 18:00:00' for key 'aulas.uk_aula_instrutor_horario'"));
+        }
+
+        @GetMapping("/falso/travado")
+        void travado() {
+            throw new CannotAcquireLockException("Lock wait timeout exceeded");
         }
 
         @GetMapping("/falso/credenciais")

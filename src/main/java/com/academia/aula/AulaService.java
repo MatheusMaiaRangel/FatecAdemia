@@ -3,7 +3,6 @@ package com.academia.aula;
 import com.academia.erro.RecursoNaoEncontradoException;
 import com.academia.erro.RegraNegocioException;
 import com.academia.inscricao.InscricaoRepository;
-import com.academia.inscricao.InscricaoService;
 import com.academia.instrutor.Instrutor;
 import com.academia.instrutor.InstrutorRepository;
 import com.academia.modalidade.Modalidade;
@@ -34,6 +33,8 @@ public class AulaService {
     static final String CONFLITO_DE_HORARIO = "O instrutor já tem uma aula neste horário";
     static final String CAPACIDADE_INSUFICIENTE = "A capacidade não pode ser menor que o número de inscritos";
     static final String AULA_COM_INSCRICOES = "Não é possível excluir uma aula com inscrições";
+    public static final String ALUNO_COM_CONFLITO_NO_NOVO_HORARIO =
+            "Um aluno inscrito nesta aula já tem outra aula no novo horário";
 
     private final AulaRepository aulaRepository;
     private final ModalidadeRepository modalidadeRepository;
@@ -102,7 +103,7 @@ public class AulaService {
         if (!aula.getHorario().isEqual(dados.horario())) {
             for (Long alunoId : alunosAtuais) {
                 if (inscricaoRepository.existsByAlunoIdAndAulaHorarioAndAulaIdNot(alunoId, dados.horario(), id)) {
-                    throw new RegraNegocioException(InscricaoService.CONFLITO_DE_HORARIO);
+                    throw new RegraNegocioException(ALUNO_COM_CONFLITO_NO_NOVO_HORARIO);
                 }
             }
         }

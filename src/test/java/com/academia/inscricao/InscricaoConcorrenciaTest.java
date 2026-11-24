@@ -129,7 +129,7 @@ class InscricaoConcorrenciaTest {
         inscrever(ana, segunda);
         assertThatThrownBy(() -> aulaService.atualizar(segunda.getId(),
                 new AulaRequest(horario, 10, modalidade.getId(), segunda.getInstrutor().getId())))
-                .isInstanceOf(RegraNegocioException.class).hasMessage(InscricaoService.CONFLITO_DE_HORARIO);
+                .isInstanceOf(RegraNegocioException.class).hasMessage(AulaService.ALUNO_COM_CONFLITO_NO_NOVO_HORARIO);
         assertThat(aulas.findById(segunda.getId()).orElseThrow().getHorario()).isEqualTo(segunda.getHorario());
     }
 

@@ -8,9 +8,12 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "usuarios")
+@Table(name = "usuarios", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_usuario_email", columnNames = "email")
+})
 public class Usuario {
 
     @Id
@@ -20,7 +23,7 @@ public class Usuario {
     @Column(nullable = false, length = LimitesUsuario.TAMANHO_MAXIMO_NOME)
     private String nome;
 
-    @Column(nullable = false, unique = true, length = LimitesUsuario.TAMANHO_MAXIMO_EMAIL)
+    @Column(nullable = false, length = LimitesUsuario.TAMANHO_MAXIMO_EMAIL)
     private String email;
 
     @Column(nullable = false, length = LimitesUsuario.TAMANHO_HASH_SENHA)

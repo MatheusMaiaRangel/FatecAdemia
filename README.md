@@ -134,10 +134,12 @@ Todo erro, inclusive 401 e 403, volta no mesmo formato:
 | Situação                                               | Status |
 |--------------------------------------------------------|--------|
 | Bean Validation, JSON mal formado, parâmetro inválido  | 400    |
+| Campo com tipo errado (ex.: texto em `capacidade`, data fora do formato) — `campos` diz qual e o formato esperado | 400 |
 | Sem token, token inválido ou login errado              | 401    |
 | Papel sem permissão para a rota                        | 403    |
 | `RecursoNaoEncontradoException` ou rota inexistente    | 404    |
-| `RegraNegocioException` ou dado duplicado              | 409    |
+| `RegraNegocioException` ou dado duplicado (a mensagem diz qual regra) | 409 |
+| Registro travado por outra requisição ao mesmo tempo (pede para tentar de novo) | 409 |
 | Corpo que não é JSON                                   | 415    |
 
 ## Para quem for implementar as outras partes

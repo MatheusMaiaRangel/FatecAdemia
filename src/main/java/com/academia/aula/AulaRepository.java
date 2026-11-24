@@ -26,4 +26,11 @@ public interface AulaRepository extends JpaRepository<Aula, Long> {
     Page<Aula> findByModalidadeNomeContainingIgnoreCase(String nome, Pageable pageable);
 
     List<Aula> findByInstrutorIdAndHorarioBetween(Long instrutorId, LocalDateTime inicio, LocalDateTime fim);
+
+    // Usadas pela Pessoa 2 antes de excluir modalidade ou instrutor (regra 4 e integridade do histórico).
+    boolean existsByModalidadeIdAndHorarioAfter(Long modalidadeId, LocalDateTime horario);
+
+    boolean existsByModalidadeId(Long modalidadeId);
+
+    boolean existsByInstrutorId(Long instrutorId);
 }

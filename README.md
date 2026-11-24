@@ -41,7 +41,18 @@ O arquivo `.env` é lido automaticamente pela aplicação e está no `.gitignore
 
 A aplicação não sobe se alguma delas faltar ou se o segredo do JWT for curto demais.
 
-### 3. Subir a API
+### 3. Criar o banco (opcional) e carregar o catálogo
+
+A aplicação cria as tabelas sozinha na primeira subida. Para criar o banco pelo script e já ter modalidades, instrutores e aulas de exemplo:
+
+```bash
+mysql -u root -p < database/schema.sql
+mysql -u root -p < database/carga-inicial.sql
+```
+
+A carga marca as aulas a partir do dia seguinte. A aula de Yoga com 2 vagas serve para mostrar o 409 de aula lotada. Rode a carga uma vez só, em um banco vazio.
+
+### 4. Subir a API
 
 ```bash
 ./mvnw spring-boot:run
@@ -49,14 +60,14 @@ A aplicação não sobe se alguma delas faltar ou se o segredo do JWT for curto 
 
 Na primeira subida as tabelas são criadas e o administrador é cadastrado com os dados de `ADMIN_*`. Nas próximas, ele só confirma que o administrador já existe.
 
-### 4. Usar
+### 5. Usar
 
 - Swagger: http://localhost:8080/swagger-ui.html
 - No Swagger, faça login como administrador em `POST /auth/login` (dados de `ADMIN_EMAIL` e `ADMIN_SENHA`) e copie o `token` da resposta.
 - Clique em **Authorize**, cole só o token (sem escrever `Bearer`) e confirme. A partir daí as rotas protegidas funcionam pela própria interface, como o cadastro de alunos em `POST /usuarios`.
 - Fora do Swagger, mande o token no cabeçalho `Authorization: Bearer <token>`.
 
-### 5. Testes e cobertura
+### 6. Testes e cobertura
 
 ```bash
 ./mvnw verify
@@ -129,10 +140,31 @@ aulas do mesmo instrutor no mesmo horário de início, com resposta 409.
 O campo de data/hora se chama **`horario`**, preservando a integração com inscrições.
 O Swagger já tem o Authorize configurado e todos os endpoints de aulas têm `@Operation`.
 
-Veja [o guia de aulas](docs/aulas.md) para exemplos de requisições, consultas, testes,
-preparação do catálogo e integração com a parte da Pessoa 2. Nesta branch, `Modalidade`
-e `Instrutor` incluem somente as entidades e os repositories necessários às aulas;
-seus CRUDs continuam sendo a entrega da Pessoa 2.
+Veja [o guia de aulas](docs/aulas.md) para exemplos de requisições, consultas e testes.
+
+## Modalidades e instrutores (Pessoa 2)
+
+CRUD completo em `/modalidades` e `/instrutores`. Qualquer usuário logado consulta; criar, editar e excluir é só do `ADMIN`.
+
+| Método   | Rota                                   | Resposta                                        |
+|----------|----------------------------------------|-------------------------------------------------|
+| `GET`    | `/modalidades`, `/instrutores`         | 200, lista em ordem alfabética                  |
+| `GET`    | `/modalidades/{id}`, `/instrutores/{id}` | 200 ou 404                                    |
+| `POST`   | `/modalidades`, `/instrutores`         | 201 com `Location`, ou 400                      |
+| `PUT`    | `/modalidades/{id}`, `/instrutores/{id}` | 200, 400 ou 404                               |
+| `DELETE` | `/modalidades/{id}`, `/instrutores/{id}` | 204, 404 ou 409                               |
+
+Validação nos DTOs: `@NotBlank` e `@Size` (nome até 100 caracteres, descrição até 500, especialidade até 100).
+
+**Regra 4 — não pode excluir modalidade com aulas futuras.** Quando o ADMIN tenta apagar uma modalidade que ainda tem aula marcada, o `ModalidadeService` devolve 409. Usa `AulaRepository.existsByModalidadeIdAndHorarioAfter`.
+
+Para não quebrar o histórico das inscrições, também devolvem 409:
+- excluir uma modalidade que só tem aulas já realizadas;
+- excluir um instrutor que tem qualquer aula cadastrada.
+
+**Lado dono:** a `Aula` guarda `modalidade_id` e `instrutor_id` com `@ManyToOne`. Do outro lado, `Modalidade` e `Instrutor` têm `@OneToMany(mappedBy = ...)`, que só lê a relação.
+
+**Script SQL:** `database/schema.sql` cria o banco e as tabelas, e `database/carga-inicial.sql` cadastra o catálogo de exemplo.
 
 ## Estrutura
 
@@ -142,8 +174,8 @@ com.academia
 ├── config      Swagger com botão Authorize, redirecionamento da raiz e relógio do sistema
 ├── erro        tratador global, resposta de erro padrão e exceções
 ├── inscricao   inscrições e cancelamento do aluno logado
-├── instrutor   entidade e repository de apoio ao módulo de aulas
-├── modalidade  entidade e repository de apoio ao módulo de aulas
+├── instrutor   entidade, DTOs, CRUD e bloqueio de exclusão com aulas
+├── modalidade  entidade, DTOs, CRUD e regra 4 (exclusão com aulas futuras)
 ├── seguranca   SecurityConfig, filtro JWT, TokenService, UsuarioLogado e respostas 401/403
 └── usuario     entidade Usuario, papéis, cadastro de alunos, login e administrador inicial
 ```

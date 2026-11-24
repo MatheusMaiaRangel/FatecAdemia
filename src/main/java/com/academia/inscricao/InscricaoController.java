@@ -29,7 +29,8 @@ public class InscricaoController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Inscreve o aluno logado em uma aula",
-            description = "Devolve 404 se a aula não existir e 409 se a aula estiver lotada ou o aluno já estiver inscrito.")
+            description = "Devolve 404 se a aula não existir e 409 se já começou, está lotada, "
+                    + "o aluno já está inscrito ou tem outra aula no mesmo horário de início.")
     public InscricaoResponse inscrever(@Valid @RequestBody InscricaoRequest dados) {
         return inscricaoService.inscrever(dados);
     }

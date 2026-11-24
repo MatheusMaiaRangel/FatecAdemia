@@ -168,6 +168,34 @@ class InscricaoControllerTest {
         assertThat(inscricaoRepository.findById(inscricaoAna.getId())).isPresent();
     }
 
+    @Test
+    void aulaPassadaDevolve409SemCriarInscricao() throws Exception {
+        Aula passada = salvarAula(-48, 5);
+        mockMvc.perform(post("/inscricoes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAna))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapeadorJson.writeValueAsString(new InscricaoRequest(passada.getId()))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensagem").value(InscricaoService.AULA_INICIADA));
+        assertThat(inscricaoRepository.countByAulaId(passada.getId())).isZero();
+    }
+
+    @Test
+    void conflitoDeHorarioDevolve409SemCriarSegundaInscricao() throws Exception {
+        LocalDateTime inicio = LocalDateTime.now(relogio).plusHours(4).withNano(0);
+        Aula primeira = aulaRepository.save(new Aula(inicio, 5, modalidade, instrutor));
+        Instrutor outroInstrutor = instrutorRepository.save(new Instrutor("Diego", "Pilates"));
+        Aula segunda = aulaRepository.save(new Aula(primeira.getHorario(), 5, modalidade, outroInstrutor));
+        inscricaoRepository.saveAndFlush(new Inscricao(ana, primeira, LocalDateTime.now(relogio)));
+        mockMvc.perform(post("/inscricoes")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(tokenAna))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapeadorJson.writeValueAsString(new InscricaoRequest(segunda.getId()))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensagem").value(InscricaoService.CONFLITO_DE_HORARIO));
+        assertThat(inscricaoRepository.countByAulaId(segunda.getId())).isZero();
+    }
+
     private Aula salvarAula(int horasAFrente, int capacidade) {
         return aulaRepository.save(new Aula(LocalDateTime.now(relogio).plusHours(horasAFrente), capacidade,
                 modalidade, instrutor));

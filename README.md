@@ -75,6 +75,22 @@ Na primeira subida as tabelas são criadas e o administrador é cadastrado com o
 
 Os testes usam H2 em memória (perfil `test`), então não precisam do MySQL. O `verify` falha se a cobertura ficar abaixo de 80%. O relatório fica em `target/site/jacoco/index.html`.
 
+No Windows, use `mvnw.cmd` e confirme que o terminal está usando Java 21:
+
+```bat
+java -version
+.\mvnw.cmd clean verify
+.\mvnw.cmd spring-boot:run
+```
+
+### Regras de inscrição
+
+- A aula deve começar no futuro; aulas já iniciadas não aceitam inscrições.
+- O aluno não pode ter duas aulas com o mesmo horário de início. O modelo não possui duração das aulas.
+- Inscrições concorrentes protegem a agenda do aluno e a capacidade da aula com bloqueios no banco, dentro da transação.
+- Alterações de horário também verificam conflitos dos alunos inscritos. Se novas inscrições entrarem durante a atualização, a API pode responder 409 e pedir uma nova tentativa.
+- Aula iniciada, conflito de horário, inscrição duplicada e lotação retornam 409.
+
 ## Segurança
 
 ### Papéis

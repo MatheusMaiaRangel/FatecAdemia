@@ -3,21 +3,27 @@ package com.academia.aula;
 import com.academia.erro.RecursoNaoEncontradoException;
 import com.academia.erro.RegraNegocioException;
 import com.academia.inscricao.InscricaoRepository;
+import com.academia.inscricao.InscricaoService;
 import com.academia.instrutor.Instrutor;
 import com.academia.instrutor.InstrutorRepository;
 import com.academia.modalidade.Modalidade;
 import com.academia.modalidade.ModalidadeRepository;
+import com.academia.usuario.UsuarioRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class AulaService {
@@ -33,15 +39,18 @@ public class AulaService {
     private final ModalidadeRepository modalidadeRepository;
     private final InstrutorRepository instrutorRepository;
     private final InscricaoRepository inscricaoRepository;
+    private final UsuarioRepository usuarioRepository;
     private final Clock relogio;
 
     public AulaService(AulaRepository aulaRepository, ModalidadeRepository modalidadeRepository,
                        InstrutorRepository instrutorRepository, InscricaoRepository inscricaoRepository,
+                       UsuarioRepository usuarioRepository,
                        Clock relogio) {
         this.aulaRepository = aulaRepository;
         this.modalidadeRepository = modalidadeRepository;
         this.instrutorRepository = instrutorRepository;
         this.inscricaoRepository = inscricaoRepository;
+        this.usuarioRepository = usuarioRepository;
         this.relogio = relogio;
     }
 
@@ -75,9 +84,28 @@ public class AulaService {
         return AulaResponse.de(aulaRepository.saveAndFlush(aula));
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public AulaResponse atualizar(Long id, AulaRequest dados) {
-        Aula aula = buscarAula(id);
+        // A mesma ordem da inscrição: alunos (por ID), depois a aula.
+        List<Long> alunos = inscricaoRepository.buscarAlunoIdsPorAula(id);
+        alunos.forEach(alunoId -> usuarioRepository.buscarPorIdParaAtualizar(alunoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Aluno não encontrado")));
+        Aula aula = aulaRepository.buscarPorIdParaAtualizar(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(AULA_NAO_ENCONTRADA));
+        Set<Long> alunosBloqueados = new HashSet<>(alunos);
+        List<Long> alunosAtuais = inscricaoRepository.buscarAlunoIdsPorAula(id);
+        // Uma inscrição pode ter entrado antes do bloqueio da aula. Não remarcar
+        // sem proteger também a agenda desse novo aluno; o cliente pode repetir.
+        if (!alunosBloqueados.containsAll(alunosAtuais)) {
+            throw new RegraNegocioException("As inscrições da aula mudaram. Tente atualizar novamente");
+        }
+        if (!aula.getHorario().isEqual(dados.horario())) {
+            for (Long alunoId : alunosAtuais) {
+                if (inscricaoRepository.existsByAlunoIdAndAulaHorarioAndAulaIdNot(alunoId, dados.horario(), id)) {
+                    throw new RegraNegocioException(InscricaoService.CONFLITO_DE_HORARIO);
+                }
+            }
+        }
         Modalidade modalidade = buscarModalidade(dados.modalidadeId());
         Instrutor instrutor = buscarInstrutor(dados.instrutorId());
         validarHorario(instrutor.getId(), dados.horario(), id);
@@ -90,7 +118,8 @@ public class AulaService {
 
     @Transactional
     public void excluir(Long id) {
-        Aula aula = buscarAula(id);
+        Aula aula = aulaRepository.buscarPorIdParaAtualizar(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(AULA_NAO_ENCONTRADA));
         if (inscricaoRepository.countByAulaId(id) > 0) {
             throw new RegraNegocioException(AULA_COM_INSCRICOES);
         }

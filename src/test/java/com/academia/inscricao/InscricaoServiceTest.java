@@ -9,6 +9,7 @@ import com.academia.modalidade.Modalidade;
 import com.academia.seguranca.UsuarioLogado;
 import com.academia.usuario.Papel;
 import com.academia.usuario.Usuario;
+import com.academia.usuario.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,6 +47,9 @@ class InscricaoServiceTest {
     @Mock
     private UsuarioLogado usuarioLogado;
 
+    @Mock
+    private UsuarioRepository usuarioRepository;
+
     private InscricaoService inscricaoService;
 
     private Usuario aluno;
@@ -53,7 +57,7 @@ class InscricaoServiceTest {
     @BeforeEach
     void configurar() {
         Clock relogioFixo = Clock.fixed(AGORA, ZoneOffset.UTC);
-        inscricaoService = new InscricaoService(inscricaoRepository, aulaRepository, usuarioLogado, relogioFixo);
+        inscricaoService = new InscricaoService(inscricaoRepository, aulaRepository, usuarioLogado, usuarioRepository, relogioFixo);
 
         aluno = new Usuario("Ana", "ana@email.com", "hash", Papel.ALUNO);
         ReflectionTestUtils.setField(aluno, "id", 10L);
@@ -62,8 +66,9 @@ class InscricaoServiceTest {
     @Test
     void inscreveAlunoQuandoAulaTemVagas() {
         Aula aula = criarAula(1L, AGORA_LOCAL.plusHours(5), 2);
-        when(usuarioLogado.obter()).thenReturn(aluno);
-        when(aulaRepository.findById(1L)).thenReturn(Optional.of(aula));
+        when(usuarioLogado.obterId()).thenReturn(10L);
+        when(usuarioRepository.buscarPorIdParaAtualizar(10L)).thenReturn(Optional.of(aluno));
+        when(aulaRepository.buscarPorIdParaAtualizar(1L)).thenReturn(Optional.of(aula));
         when(inscricaoRepository.existsByAlunoIdAndAulaId(10L, 1L)).thenReturn(false);
         when(inscricaoRepository.countByAulaId(1L)).thenReturn(1L);
         when(inscricaoRepository.save(any(Inscricao.class))).thenAnswer(chamada -> {
@@ -87,8 +92,9 @@ class InscricaoServiceTest {
 
     @Test
     void naoPermiteInscreverEmAulaInexistente() {
-        when(usuarioLogado.obter()).thenReturn(aluno);
-        when(aulaRepository.findById(404L)).thenReturn(Optional.empty());
+        when(usuarioLogado.obterId()).thenReturn(10L);
+        when(usuarioRepository.buscarPorIdParaAtualizar(10L)).thenReturn(Optional.of(aluno));
+        when(aulaRepository.buscarPorIdParaAtualizar(404L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> inscricaoService.inscrever(new InscricaoRequest(404L)))
                 .isInstanceOf(RecursoNaoEncontradoException.class)
@@ -99,8 +105,9 @@ class InscricaoServiceTest {
     @Test
     void naoPermiteInscreverDuasVezesNaMesmaAula() {
         Aula aula = criarAula(1L, AGORA_LOCAL.plusHours(5), 10);
-        when(usuarioLogado.obter()).thenReturn(aluno);
-        when(aulaRepository.findById(1L)).thenReturn(Optional.of(aula));
+        when(usuarioLogado.obterId()).thenReturn(10L);
+        when(usuarioRepository.buscarPorIdParaAtualizar(10L)).thenReturn(Optional.of(aluno));
+        when(aulaRepository.buscarPorIdParaAtualizar(1L)).thenReturn(Optional.of(aula));
         when(inscricaoRepository.existsByAlunoIdAndAulaId(10L, 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> inscricaoService.inscrever(new InscricaoRequest(1L)))
@@ -112,8 +119,9 @@ class InscricaoServiceTest {
     @Test
     void naoPermiteInscreverEmAulaLotada() {
         Aula aula = criarAula(1L, AGORA_LOCAL.plusHours(5), 2);
-        when(usuarioLogado.obter()).thenReturn(aluno);
-        when(aulaRepository.findById(1L)).thenReturn(Optional.of(aula));
+        when(usuarioLogado.obterId()).thenReturn(10L);
+        when(usuarioRepository.buscarPorIdParaAtualizar(10L)).thenReturn(Optional.of(aluno));
+        when(aulaRepository.buscarPorIdParaAtualizar(1L)).thenReturn(Optional.of(aula));
         when(inscricaoRepository.existsByAlunoIdAndAulaId(10L, 1L)).thenReturn(false);
         when(inscricaoRepository.countByAulaId(1L)).thenReturn(2L);
 
@@ -177,6 +185,37 @@ class InscricaoServiceTest {
                 .isInstanceOf(RecursoNaoEncontradoException.class)
                 .hasMessage(InscricaoService.INSCRICAO_NAO_ENCONTRADA);
         verify(inscricaoRepository, never()).delete(any());
+    }
+
+    @Test
+    void rejeitaAulaPassada() {
+        verificarAulaIniciada(AGORA_LOCAL.minusDays(2));
+    }
+
+    @Test
+    void rejeitaAulaNoInstanteAtual() {
+        verificarAulaIniciada(AGORA_LOCAL);
+    }
+
+    private void verificarAulaIniciada(LocalDateTime horario) {
+        when(usuarioLogado.obterId()).thenReturn(10L);
+        when(usuarioRepository.buscarPorIdParaAtualizar(10L)).thenReturn(Optional.of(aluno));
+        when(aulaRepository.buscarPorIdParaAtualizar(1L)).thenReturn(Optional.of(criarAula(1L, horario, 10)));
+        assertThatThrownBy(() -> inscricaoService.inscrever(new InscricaoRequest(1L)))
+                .isInstanceOf(RegraNegocioException.class).hasMessage(InscricaoService.AULA_INICIADA);
+        verify(inscricaoRepository, never()).save(any());
+    }
+
+    @Test
+    void rejeitaOutraAulaNoMesmoHorario() {
+        LocalDateTime horario = AGORA_LOCAL.plusHours(5);
+        when(usuarioLogado.obterId()).thenReturn(10L);
+        when(usuarioRepository.buscarPorIdParaAtualizar(10L)).thenReturn(Optional.of(aluno));
+        when(aulaRepository.buscarPorIdParaAtualizar(1L)).thenReturn(Optional.of(criarAula(1L, horario, 10)));
+        when(inscricaoRepository.existsByAlunoIdAndAulaHorarioAndAulaIdNot(10L, horario, 1L)).thenReturn(true);
+        assertThatThrownBy(() -> inscricaoService.inscrever(new InscricaoRequest(1L)))
+                .isInstanceOf(RegraNegocioException.class).hasMessage(InscricaoService.CONFLITO_DE_HORARIO);
+        verify(inscricaoRepository, never()).save(any());
     }
 
     private static Aula criarAula(Long id, LocalDateTime horario, int capacidade) {

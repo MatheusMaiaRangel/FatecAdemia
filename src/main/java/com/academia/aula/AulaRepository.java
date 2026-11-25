@@ -36,7 +36,7 @@ public interface AulaRepository extends JpaRepository<Aula, Long> {
 
     List<Aula> findByInstrutorIdAndHorarioBetween(Long instrutorId, LocalDateTime inicio, LocalDateTime fim);
 
-    // Usadas pela Pessoa 2 antes de excluir modalidade ou instrutor (regra 4 e integridade do histórico).
+    // Usadas antes de excluir modalidade ou instrutor (regra 4 e integridade do histórico).
     boolean existsByModalidadeIdAndHorarioAfter(Long modalidadeId, LocalDateTime horario);
 
     boolean existsByModalidadeId(Long modalidadeId);

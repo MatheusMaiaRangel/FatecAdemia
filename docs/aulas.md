@@ -1,4 +1,4 @@
-# Aulas - Pessoa 3
+# Aulas
 
 ## Escopo da branch `Aula`
 
@@ -12,11 +12,7 @@
 
 ## Integração com o grupo
 
-Na base usada para esta branch, `Modalidade` e `Instrutor` ainda não existiam.
-Foram incluídas as entidades mínimas e os repositories para permitir a compilação,
-os relacionamentos e o funcionamento do módulo de aulas. Não foram criados os
-controllers, services ou DTOs dessas duas entidades. A Pessoa 2 pode continuar a
-partir destes contratos, preservando os pacotes e os relacionamentos abaixo:
+`Aula` se relaciona com `Modalidade`, `Instrutor` e as inscrições assim:
 
 | Entidade | Campos | Relação inversa |
 | --- | --- | --- |
@@ -37,7 +33,7 @@ Não foi alterado o comportamento dos endpoints de inscrição.
 
 Siga o README para configurar MySQL, variáveis de ambiente, administrador e login.
 Em um banco de desenvolvimento novo, inicie a aplicação para criar as tabelas.
-Até os CRUDs da Pessoa 2 serem integrados, cadastre o catálogo pelo MySQL:
+Se preferir cadastrar o catálogo direto pelo MySQL:
 
 ```sql
 INSERT INTO modalidades (nome, descricao)
@@ -135,12 +131,8 @@ métodos acompanham o atributo Java real para que o Spring Data derive as consul
 | `findByModalidadeNomeContainingIgnoreCase` | Quais aulas existem de determinada modalidade? | Filtro parcial de modalidade em `/aulas`, com paginação e ordenação |
 | `findByInstrutorIdAndHorarioBetween` | Quais aulas esse instrutor tem no intervalo? | Consulta a agenda do dia durante a criação e edição para verificar o conflito |
 
-Na apresentação, a Pessoa 3 explica também a quarta consulta, da Pessoa 4.
-Na base atual ela se chama `findByAlunoIdOrderByCriadaEmDesc`, retorna somente as
-inscrições do aluno autenticado e é usada em `GET /inscricoes`. O cancelamento
-atual exclui a inscrição, portanto ainda não há campo `status`. Explique o código
-final combinado pelo grupo; não apresente `findByUsuarioIdAndStatus` como se já
-estivesse implementado.
+A quarta consulta é `findByAlunoIdOrderByCriadaEmDesc`, das inscrições: retorna
+somente as inscrições do aluno autenticado e é usada em `GET /inscricoes`.
 
 ## Regras e erros
 
